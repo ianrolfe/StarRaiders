@@ -30,8 +30,19 @@ Addressing modes are as follows:
 values and labels can be any Python expression, but the final value must
 evaluate to an integer value.   Use a numeric label to set the memory
 location of instructions to follow.
+
+==================================================================================
+Ian K Rolfe: Lines tagged # IKR or block #IKR .. #/IKR are changes I made to 
+the original to support compiling Atari/Commodore syntax assembler files, more
+specifically the StarRaiders source code....
+This includes but not limited to: 
+- Labels don't need colons if in column 1 (=> opcodes must have 1 space/tab before)
+- assembler directives ignored
+- TODO: Hexadecimal constants begin with '$'
+- TODO: '*' is an alias for the current pc address.
+
 """
-from __future__ import print_function
+from __future__ import print_function # IKR
 from collections import Callable
 import re
 
@@ -391,6 +402,9 @@ def parse_lines(lines,symbols):
         # /IKR
         if assign_pat.match(line):
             exec(line,symbols)
+        # IKR: Ignore directive lines
+        elif line.lstrip()[0] == '.':
+            continue
         else:
             # IKR: Label starting in col1 needs not a colon. opcode must 
             # have one whitespace before it.
