@@ -38,15 +38,10 @@ specifically the StarRaiders source code....
 This includes but not limited to: 
 - Labels don't need colons if in column 1 (=> opcodes must have 1 space/tab before)
 - assembler directives ignored
-<<<<<<< HEAD
 - Hexadecimal constants begin with '$'
 - TODO: '*' is an alias for the current pc address when in expr > 1st char
 - TODO: Check for invalid/suspicious labels.
-=======
-- TODO: Hexadecimal constants begin with '$'
-- TODO: '*' is an alias for the current pc address.
->>>>>>> origin/master
-
+- TODO: Doesn't handle forward references in label assignments too well.
 """
 from __future__ import print_function # IKR
 from collections import Callable
