@@ -38,8 +38,9 @@ specifically the StarRaiders source code....
 This includes but not limited to: 
 - Labels don't need colons if in column 1 (=> opcodes must have 1 space/tab before)
 - assembler directives ignored
-- TODO: Hexadecimal constants begin with '$'
-- TODO: '*' is an alias for the current pc address.
+- Hexadecimal constants begin with '$'
+- TODO: '*' is an alias for the current pc address when in expr > 1st char
+- TODO: Check for invalid/suspicious labels.
 
 """
 from __future__ import print_function # IKR
@@ -48,6 +49,31 @@ import re
 
 # Exception used for errors
 class AssemblyError(Exception): pass
+
+# IKR Class used for symbol table
+class SymbolTable(object):
+    def __init__(self):
+        self._symbols = {}
+
+    def get(self, label):
+        return int(self._symbols[label])
+
+    def set(self, label, expr):
+        if label == '*':
+            label = 'PC'
+        print("SET {} = {} [{}]".format(label, expr, type(expr)))
+        if isinstance(expr, int) or callable(expr):
+            self._symbols[label] = expr
+        else:
+            # substitute out the hex values
+            expr = re.sub('\$([0-9A-Fa-f]*)', lambda x: str(int(x.group(1),16)), expr)
+            # first char is *, subst PC.
+            if expr[0] == '*':
+                expr = 'PC' + expr[1:]
+            print("EVAL {}".format(expr))
+            self._symbols[label] = eval(expr, self._symbols)
+        return
+# /IKR
 
 # Functions used in the creation of object code (used in the table below)
 def VALUE_L(pc, value):
@@ -391,7 +417,8 @@ def strip_lines(lines):
         line = line.strip()
         yield line
 
-assign_pat = re.compile(r'(\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*=)')
+#assign_pat = re.compile(r'(\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*=)')
+assign_pat = re.compile(r'(\s*)([a-zA-Z_*][a-zA-Z0-9_*]*)(\s*=)(\s*)(.*)$')
 
 # Parse lines into intermediate object code
 def parse_lines(lines,symbols):
@@ -400,8 +427,15 @@ def parse_lines(lines,symbols):
         if line == "":
             continue
         # /IKR
-        if assign_pat.match(line):
-            exec(line,symbols)
+        # IKR: Evaluate assignment
+        assignment = assign_pat.match(line)
+        if assignment:
+            print(assignment.groups())
+            _ignore, label, _ignore, _ignore, expr = assignment.groups()
+            print("SET {} = {}".format(label, expr))
+            #exec(line,symbols) 
+            symbols.set(label, expr)
+           # /IKR
         # IKR: Ignore directive lines
         elif line.lstrip()[0] == '.':
             continue
@@ -425,19 +459,24 @@ def parse_lines(lines,symbols):
 # Assemble a sequence of lines into binary
 def assemble_6502(lines,pc=0):
     objcode = []
-    symbols = {}
-    symbols['HIGH'] = lambda x : (x & 0xff00) >> 8
-    symbols['LOW'] = lambda x : x & 0xff
+    symbols = SymbolTable()
+    symbols.set('HIGH', lambda x : (x & 0xff00) >> 8)
+    symbols.set('LOW',  lambda x : x & 0xff)
+    symbols.set('PC', pc)
 
     # Pass 1 : Parse instructions and create intermediate code
     for lineno, label, (value, icode) in parse_lines(lines,symbols):
         # Try to evaluate numeric labels and set the PC
         if label:
             try:
-                pc = int(eval(label,symbols))
-            except (ValueError,NameError):
-                symbols[label] = pc
-
+                # IKR
+                #pc = int(eval(label,symbols))
+                pc = symbols.get(label)
+                symbols.set('PC', pc)
+            except (ValueError,NameError,KeyError):
+                pc = symbols.get('PC')
+                symbols.set(label, pc)
+                # /IKR
         # Store the resulting objcode for later expansion
         if icode:
             objcode.append((lineno,pc,value,icode))
@@ -448,8 +487,8 @@ def assemble_6502(lines,pc=0):
     for lineno, pc, value, icode in objcode:
         # Evaluate the value string
         try:
-            symbols['PC'] = pc
-            realvalue = eval(value,symbols)
+            symbols.set('PC', pc) # IKR
+            realvalue = symbols.get(value) # IKR
             if isinstance(realvalue,str):
                 realvalue = ord(realvalue) & 0xff
             if not isinstance(realvalue, int):
