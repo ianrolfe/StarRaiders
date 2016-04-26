@@ -42,6 +42,7 @@ This includes but not limited to:
 - TODO: '*' is an alias for the current pc address when in expr > 1st char
 - TODO: Check for invalid/suspicious labels.
 - TODO: Doesn't handle forward references in label assignments too well.
+- TODO: Zero page detection is all wrong (uses '%', not auto if addr<$100)
 """
 from __future__ import print_function # IKR
 from collections import Callable
