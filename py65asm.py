@@ -43,6 +43,8 @@ This includes but not limited to:
 - TODO: Check for invalid/suspicious labels.
 - TODO: Doesn't handle forward references in label assignments too well.
 - TODO: Zero page detection is all wrong (uses '%', not auto if addr<$100)
+- TODO: .BYTE, .WORD etc directives need implementing
+- TODO: Indirect syntax uses '[...]' instead of '(...)'
 """
 from __future__ import print_function # IKR
 from collections import Callable
@@ -62,7 +64,7 @@ class SymbolTable(object):
     def set(self, label, expr):
         if label == '*':
             label = 'PC'
-        print("SET {} = {} [{}]".format(label, expr, type(expr)))
+        # print("SET {} = {} [{}]".format(label, expr, type(expr)))
         if isinstance(expr, int) or callable(expr):
             self._symbols[label] = expr
         else:
@@ -71,7 +73,7 @@ class SymbolTable(object):
             # first char is *, subst PC.
             if expr[0] == '*':
                 expr = 'PC' + expr[1:]
-            print("EVAL {}".format(expr))
+            # print("EVAL {}".format(expr))
             self._symbols[label] = eval(expr, self._symbols)
         return
 # /IKR
@@ -431,11 +433,15 @@ def parse_lines(lines,symbols):
         # IKR: Evaluate assignment
         assignment = assign_pat.match(line)
         if assignment:
-            print(assignment.groups())
+            # print(assignment.groups())
             _ignore, label, _ignore, _ignore, expr = assignment.groups()
-            print("SET {} = {}".format(label, expr))
+            # print("SET {} = {}".format(label, expr))
             #exec(line,symbols) 
-            symbols.set(label, expr)
+            try:
+            	symbols.set(label, expr)
+            except NameError as e:
+                print( str(e).split())
+                print("{0:4d} : Info : Forward reference to '{1}' unevaluated".format(lineno, expr))
            # /IKR
         # IKR: Ignore directive lines
         elif line.lstrip()[0] == '.':
