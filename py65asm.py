@@ -400,6 +400,7 @@ def parse_address_mode(mode):
 # (value, objcode) where value is a string to be evaluated in the 2nd pass
 def parse_opcode(line):
     fields = line.split(None,1)
+    print(fields)
     opcode = fields[0]
     arg = fields[1] if len(fields) == 2 else ""
     mode,value = parse_address_mode(arg)
@@ -417,7 +418,13 @@ def strip_lines(lines):
         comment_index = line.find(";")
         if comment_index >= 0:
             line = line[:comment_index]
-        line = line.strip()
+
+        # IKR dont lstrip lines without labels!
+        if line and line[0] in ' \t':
+            line = ' ' + line.strip()
+        else:
+            line = line.rstrip()
+        # /IKR
         yield line
 
 #assign_pat = re.compile(r'(\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*=)')
@@ -427,15 +434,13 @@ assign_pat = re.compile(r'(\s*)([a-zA-Z_*][a-zA-Z0-9_*]*)(\s*=)(\s*)(.*)$')
 def parse_lines(lines,symbols):
     for lineno,line in enumerate(lines,1):
         # IKR: Ignore blank lines
-        if line == "":
+        if line.strip() == "":
             continue
         # /IKR
         # IKR: Evaluate assignment
         assignment = assign_pat.match(line)
         if assignment:
-            # print(assignment.groups())
             _ignore, label, _ignore, _ignore, expr = assignment.groups()
-            # print("SET {} = {}".format(label, expr))
             #exec(line,symbols) 
             try:
             	symbols.set(label, expr)
@@ -444,15 +449,17 @@ def parse_lines(lines,symbols):
                 print("{0:4d} : Info : Forward reference to '{1}' unevaluated".format(lineno, expr))
            # /IKR
         # IKR: Ignore directive lines
-        elif line.lstrip()[0] == '.':
+        elif line.lstrip() and line.lstrip()[0] == '.':
             continue
         else:
             # IKR: Label starting in col1 needs not a colon. opcode must 
             # have one whitespace before it.
             if line[0] not in " \t":
-                if " \t" in line:
+                if " " in line or '\t' in line:
                 
                     label, statement = line.split(None,1)
+                    print(line)
+                    print("{} {}".format(label, statement))
                 else:
                     label = line
                     statement = ""
@@ -489,6 +496,8 @@ def assemble_6502(lines,pc=0):
             objcode.append((lineno,pc,value,icode))
             pc += len(icode)
 
+    print(icode)
+
     # Pass 2 : Create final object code by evaluating expressions
     execode = []
     for lineno, pc, value, icode in objcode:
@@ -514,11 +523,11 @@ if __name__ == '__main__':
         print("Usage %s infile.asm" % sys.argv[0],file=sys.stderr)
         raise SystemExit(1)
     lines = strip_lines(open(sys.argv[1]))
-    if 0:
+    if 1:
         for lineno, pc, opcode in assemble_6502(lines):
             print("%04x : " % pc, end="")
             print(*(format(op,"02x") for op in opcode))
-    if 1:
+    if 0:
         # OSI monitor format
         first = 0
         lastpc = -1
