@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # asm6502.py
 
 """
 A simple but powerful 6502 assembler
 
-Author : David Beazley (http://www.dabeaz.com)
+Author : David Beazle (http://www.dabeaz.com)
 Copyright (C) 2010
 
 Parses assembly language of the following form:
@@ -440,7 +440,7 @@ def parse_lines(lines,symbols):
             try:
             	symbols.set(label, expr)
             except NameError as e:
-                print( str(e).split())
+                print(line)
                 print("{0:4d} : Info : Forward reference to '{1}' unevaluated".format(lineno, expr))
            # /IKR
         # IKR: Ignore directive lines
