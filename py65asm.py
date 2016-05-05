@@ -76,6 +76,13 @@ class SymbolTable(object):
             # print("EVAL {}".format(expr))
             self._symbols[label] = eval(expr, self._symbols)
         return
+
+    def dump(self):
+        for sym in sorted(self._symbols.keys()):
+            valu = self._symbols[sym]
+            if isinstance(valu, int):
+                valu = hex(valu)
+            print("{0:8s} {1}".format(sym, valu))
 # /IKR
 
 # Functions used in the creation of object code (used in the table below)
@@ -495,6 +502,7 @@ def assemble_6502(lines,pc=0):
         if icode:
             objcode.append((lineno,pc,value,icode))
             pc += len(icode)
+            symbols.set('PC', pc)
 
     print(icode)
 
@@ -515,6 +523,7 @@ def assemble_6502(lines,pc=0):
         ecode = [op(pc,realvalue) if isinstance(op,Callable) else op
                  for op in icode]
         execode.append((lineno,pc,ecode))
+    symbols.dump()
     return execode
 
 if __name__ == '__main__':
